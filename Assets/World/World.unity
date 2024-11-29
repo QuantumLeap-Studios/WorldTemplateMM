@@ -148,7 +148,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!64 &1429069098
 MeshCollider:
@@ -341,7 +341,7 @@ PrefabInstance:
     - target: {fileID: 7552601749146343898, guid: 90750a8db82937747beffee3b188e8a2,
         type: 3}
       propertyPath: m_Intensity
-      value: 4
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
