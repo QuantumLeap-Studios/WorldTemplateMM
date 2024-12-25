@@ -4,19 +4,15 @@ using System.IO;
 using System.Linq;
 using System.IO.Compression;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
-using System.Collections;
-using Unity.Plastic.Newtonsoft.Json;
 using System.Collections.Generic;
-using System;
+using Unity.Plastic.Newtonsoft.Json;
 
 public class BuildAssetBundleMMWorld : EditorWindow
 {
     private string assetBundleDirectory = "Assets/World";
     private string outputDirectory = "Assets/World/Output";
     private string zipName = "WorldAssetBundle";
-    private string tempBundlePath;
 
-    // Preferences keys for saving directories and zip name
     private const string AssetBundleDirectoryKey = "AssetBundleDirectory";
     private const string OutputDirectoryKey = "OutputDirectory";
     private const string ZipNameKey = "ZipName";
@@ -30,12 +26,11 @@ public class BuildAssetBundleMMWorld : EditorWindow
     [MenuItem("Tools/Build .mmworld Asset Bundle")]
     public static void ShowWindow()
     {
-        EditorWindow.GetWindow(typeof(BuildAssetBundleMMWorld));
+        EditorWindow.GetWindow(typeof(BuildAssetBundleMMWorld), false, ".mmworld Builder");
     }
 
     void OnEnable()
     {
-        // Load saved preferences
         assetBundleDirectory = EditorPrefs.GetString(AssetBundleDirectoryKey, "Assets/World");
         outputDirectory = EditorPrefs.GetString(OutputDirectoryKey, "Assets/World/Output");
         zipName = EditorPrefs.GetString(ZipNameKey, "WorldAssetBundle");
@@ -43,24 +38,44 @@ public class BuildAssetBundleMMWorld : EditorWindow
 
     void OnGUI()
     {
-        GUILayout.Label("Build .mmworld Asset Bundle", EditorStyles.boldLabel);
+        GUILayout.Space(10);
+        GUILayout.Label("Mango Monkeys World Exporter", new GUIStyle(EditorStyles.boldLabel) { fontSize = 16, alignment = TextAnchor.MiddleCenter });
+        GUILayout.Space(10);
 
-        // Directory and Zip name fields
+        EditorGUILayout.BeginVertical("box");
+        GUILayout.Label("Paths", EditorStyles.boldLabel);
         assetBundleDirectory = EditorGUILayout.TextField("Asset Bundle Directory", assetBundleDirectory);
         outputDirectory = EditorGUILayout.TextField("Output Directory", outputDirectory);
         zipName = EditorGUILayout.TextField("Zip Name", zipName);
+        EditorGUILayout.EndVertical();
 
-        // Build button
-        if (GUILayout.Button("Build Asset Bundles for All Platforms"))
+        GUILayout.Space(10);
+
+        if (zipName.Length > 0 && assetBundleDirectory.Length > 0 && outputDirectory.Length > 0)
         {
-            BuildAssetBundlesForAllPlatforms();
+            if (GUILayout.Button("Build Asset Bundles for All Platforms", GUILayout.Height(40)))
+            {
+                BuildAssetBundlesForAllPlatforms();
+            }
+        }
+        else
+        {
+            EditorGUILayout.HelpBox("One of your fields is empty!", MessageType.Error);
         }
 
-        // Save preferences button
-        if (GUILayout.Button("Save Preferences"))
+        GUILayout.Space(10);
+
+        if (GUILayout.Button("Save Preferences", GUILayout.Height(30)))
         {
             SavePreferences();
         }
+
+        GUILayout.Space(10);
+
+        EditorGUILayout.HelpBox("Ensure all paths and names are correct before building.", MessageType.Info);
+        EditorGUILayout.HelpBox("The output will include a zip package, with it you can export it to mod.io!", MessageType.Info);
+        EditorGUILayout.HelpBox("Press Ctrl + R if the zip file isnt showing in Worlds/Output.", MessageType.Info);
+        EditorGUILayout.HelpBox("Videos will NOT work on standalone quest.", MessageType.Warning);
     }
 
     void SavePreferences()
@@ -68,7 +83,6 @@ public class BuildAssetBundleMMWorld : EditorWindow
         EditorPrefs.SetString(AssetBundleDirectoryKey, assetBundleDirectory);
         EditorPrefs.SetString(OutputDirectoryKey, outputDirectory);
         EditorPrefs.SetString(ZipNameKey, zipName);
-
         Debug.Log("Preferences saved.");
     }
 
@@ -123,7 +137,7 @@ public class BuildAssetBundleMMWorld : EditorWindow
 
                 if (File.Exists(finalPath))
                 {
-                    File.Delete(finalPath);  // We need to delete the old .mmworld file to rename the new one  
+                    File.Delete(finalPath);
                 }
 
                 File.Move(tempBundlePath, finalPath);
@@ -135,7 +149,6 @@ public class BuildAssetBundleMMWorld : EditorWindow
                 Debug.Log($"Asset Bundle for {target} built and renamed to .mmworld{target} at: {finalPath}");
             }
 
-            // Create package.json before creating the zip file  
             string packageJsonPath = Path.Combine(outputDirectory, "package.json");
             string jsonContent = JsonConvert.SerializeObject(new
             {
@@ -146,7 +159,6 @@ public class BuildAssetBundleMMWorld : EditorWindow
             File.WriteAllText(packageJsonPath, jsonContent);
             Debug.Log($"package.json created at: {packageJsonPath}");
 
-            // Now create the zip file  
             foreach (BuildTarget target in supportedTargets)
             {
                 string finalPath = Path.Combine(outputDirectory, $"{zipName}{target}.mmworld{target}");
@@ -158,7 +170,6 @@ public class BuildAssetBundleMMWorld : EditorWindow
             Debug.LogError($"Build failed: {ex.Message}");
         }
     }
-
 
     void BuildAssetBundles()
     {
@@ -178,22 +189,18 @@ public class BuildAssetBundleMMWorld : EditorWindow
     {
         string zipFilePath = Path.Combine(outputDirectory, $"{zipName}.zip");
 
-        // Check if the zip file already exists
         bool zipExists = File.Exists(zipFilePath);
 
         using (var zip = zipExists ? ZipFile.Open(zipFilePath, ZipArchiveMode.Update) : ZipFile.Open(zipFilePath, ZipArchiveMode.Create))
         {
-            // Add the bundle file to the zip
             zip.CreateEntryFromFile(bundlePath, Path.GetFileName(bundlePath), CompressionLevel.Optimal);
 
-            // Add all other platform bundles to the zip
             string[] platformBundles = Directory.GetFiles(outputDirectory, $"*.mmworld{target}");
             foreach (var platformBundle in platformBundles)
             {
                 zip.CreateEntryFromFile(platformBundle, Path.GetFileName(platformBundle), CompressionLevel.Optimal);
             }
 
-            // Add package.json file to the zip if it exists
             string packageJsonPath = Path.Combine(outputDirectory, "package.json");
             if (File.Exists(packageJsonPath))
             {
@@ -206,7 +213,6 @@ public class BuildAssetBundleMMWorld : EditorWindow
             }
         }
 
-        // Optionally, delete the bundle after adding it to the zip
         File.Delete(bundlePath);
 
         Debug.Log($"Asset bundle and package.json zipped to: {zipFilePath}");
