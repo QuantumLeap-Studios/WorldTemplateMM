@@ -6,16 +6,20 @@ using System.IO.Compression;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
 using System.Collections.Generic;
 using Unity.Plastic.Newtonsoft.Json;
+using UnityEngine.SceneManagement;
 
 public class BuildAssetBundleMMWorld : EditorWindow
 {
     private string assetBundleDirectory = "Assets/World";
     private string outputDirectory = "Assets/World/Output";
     private string zipName = "WorldAssetBundle";
+    private bool usePostProccessing = true;
+    private GameObject globalVolume;
 
     private const string AssetBundleDirectoryKey = "AssetBundleDirectory";
     private const string OutputDirectoryKey = "OutputDirectory";
     private const string ZipNameKey = "ZipName";
+    private const string usePostProccessingKey = "UsePostProccessing";
 
     private BuildTarget[] supportedTargets = new BuildTarget[]
     {
@@ -31,9 +35,11 @@ public class BuildAssetBundleMMWorld : EditorWindow
 
     void OnEnable()
     {
+        globalVolume = GameObject.Find("DisableOnBuild").transform.GetChild(0).gameObject;
         assetBundleDirectory = EditorPrefs.GetString(AssetBundleDirectoryKey, "Assets/World");
         outputDirectory = EditorPrefs.GetString(OutputDirectoryKey, "Assets/World/Output");
         zipName = EditorPrefs.GetString(ZipNameKey, "WorldAssetBundle");
+        usePostProccessing = EditorPrefs.GetBool(usePostProccessingKey, true);
     }
 
     void OnGUI()
@@ -47,6 +53,7 @@ public class BuildAssetBundleMMWorld : EditorWindow
         assetBundleDirectory = EditorGUILayout.TextField("Asset Bundle Directory", assetBundleDirectory);
         outputDirectory = EditorGUILayout.TextField("Output Directory", outputDirectory);
         zipName = EditorGUILayout.TextField("Zip Name", zipName);
+        usePostProccessing = EditorGUILayout.Toggle("Use Post Proccessing", usePostProccessing);
         EditorGUILayout.EndVertical();
 
         GUILayout.Space(10);
@@ -76,8 +83,30 @@ public class BuildAssetBundleMMWorld : EditorWindow
         EditorGUILayout.HelpBox("The output will include a zip package, with it you can export it to mod.io!", MessageType.Info);
         EditorGUILayout.HelpBox("Press Ctrl + R if the zip file isnt showing in Worlds/Output.", MessageType.Info);
         EditorGUILayout.HelpBox("Videos will NOT work on standalone quest.", MessageType.Warning);
+
+        if (globalVolume != null)
+        {
+            bool shouldBeActive = usePostProccessing;
+            if (globalVolume.activeSelf != shouldBeActive)
+            {
+                globalVolume.SetActive(shouldBeActive);
+                EditorUtility.SetDirty(globalVolume);
+            }
+        }
     }
 
+    private void OnValidate()
+    {
+        if (globalVolume != null)
+        {
+            bool shouldBeActive = usePostProccessing;
+            if (globalVolume.activeSelf != shouldBeActive)
+            {
+                globalVolume.SetActive(shouldBeActive);
+                EditorUtility.SetDirty(globalVolume);
+            }
+        }
+    }
     void SavePreferences()
     {
         EditorPrefs.SetString(AssetBundleDirectoryKey, assetBundleDirectory);
@@ -153,7 +182,8 @@ public class BuildAssetBundleMMWorld : EditorWindow
             string jsonContent = JsonConvert.SerializeObject(new
             {
                 pcFileName = platformFileNames.ContainsKey("StandaloneWindows") ? platformFileNames["StandaloneWindows"] : "defaultPCBundle",
-                androidFileName = platformFileNames.ContainsKey("Android") ? platformFileNames["Android"] : "defaultAndroidBundle"
+                androidFileName = platformFileNames.ContainsKey("Android") ? platformFileNames["Android"] : "defaultAndroidBundle",
+                usePoPr = usePostProccessing
             }, Formatting.Indented);
 
             File.WriteAllText(packageJsonPath, jsonContent);
