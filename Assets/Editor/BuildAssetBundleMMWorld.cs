@@ -179,12 +179,22 @@ public class BuildAssetBundleMMWorld : EditorWindow
             }
 
             string packageJsonPath = Path.Combine(outputDirectory, "package.json");
+            string luaScriptPath = Path.Combine(outputDirectory, "script.lua");
             string jsonContent = JsonConvert.SerializeObject(new
             {
                 pcFileName = platformFileNames.ContainsKey("StandaloneWindows") ? platformFileNames["StandaloneWindows"] : "defaultPCBundle",
                 androidFileName = platformFileNames.ContainsKey("Android") ? platformFileNames["Android"] : "defaultAndroidBundle",
                 usePoPr = usePostProccessing
             }, Formatting.Indented);
+
+            if (File.Exists("Assets/Scripts/Lua/script.lua"))
+            {
+                string luaContent = File.ReadAllText("Assets/Scripts/Lua/script.lua");
+
+                File.WriteAllText(luaScriptPath, luaContent);
+
+                Debug.Log("added lua thing");
+            }
 
             File.WriteAllText(packageJsonPath, jsonContent);
             Debug.Log($"package.json created at: {packageJsonPath}");
@@ -240,6 +250,17 @@ public class BuildAssetBundleMMWorld : EditorWindow
             else
             {
                 Debug.LogWarning("package.json does not exist. It was not added to the zip.");
+            }
+
+            string luaJsonPath = Path.Combine(outputDirectory, "script.lua");
+            if (File.Exists(luaJsonPath))
+            {
+                zip.CreateEntryFromFile(luaJsonPath, "script.lua", CompressionLevel.Optimal);
+                Debug.Log("Added script.lua to the zip.");
+            }
+            else
+            {
+                Debug.LogWarning("script.lua does not exist. It was not added to the zip.");
             }
         }
 

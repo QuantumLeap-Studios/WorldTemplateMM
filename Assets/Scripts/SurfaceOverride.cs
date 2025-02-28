@@ -4,14 +4,18 @@ using UnityEngine;
 
 public class SurfaceOverride : MonoBehaviour
 {
-    [Header("0 = Grass")]
-    [Header("1 = Metal")]
-    [Header("2 = Dirt")]
-    [Header("3 = Wood")]
-    [Header("4 = Wood")]
-    [Header("5 = Wood")]
-    [Header("6 = Snow")]
-    [Header("7 = Metal")]
-    [Header("8 = Goo")]
-    public int Tap = 0;
+    public enum SurfaceOverrides
+    {
+        Grass,
+        Snow,
+        Wood,
+        Metal,
+        Goo,
+        WaterBalloon
+    }
+    public SurfaceOverrides Override;
+    public bool LaunchPlayer = false;
+    public bool Swimmable = false;
+    public float Power = 0f;
+    public Vector3 LaunchDirection = Vector3.zero;
 }
